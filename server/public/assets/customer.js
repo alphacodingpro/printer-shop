@@ -11,7 +11,7 @@ const T = {
     step3: 'Pay', total: 'Total', pay: 'Pay now', payCash: 'Pay at the counter', payJazz: 'JazzCash', payEasy: 'Easypaisa', payMock: 'Test payment',
     chooseFirst: 'Choose a file and settings to see the price', calc: 'Calculating…',
     offline: 'Printer offline right now', closed: 'This shop is not taking orders right now.', ur: 'اردو', en: 'English',
-    sheets: '{p} pages × {c} copies', needPay: 'Choose how you want to pay',
+    sheets: '{p} pages × {c} copies', needPay: 'Choose how you want to pay', payWith: 'Pay with {m}', howPay: 'How do you want to pay?', waitPrice: 'Choose your settings above to see the price',
   },
   ur: {
     loading: 'لوڈ ہو رہا ہے…', notFound: 'یہ دکان نہیں ملی۔ QR کوڈ دوبارہ چیک کریں۔',
@@ -23,7 +23,7 @@ const T = {
     step3: 'ادائیگی', total: 'کل', pay: 'ابھی ادائیگی کریں', payCash: 'کاؤنٹر پر ادائیگی', payJazz: 'جاز کیش', payEasy: 'ایزی پیسہ', payMock: 'ٹیسٹ ادائیگی',
     chooseFirst: 'قیمت دیکھنے کے لیے فائل اور سیٹنگ چنیں', calc: 'حساب ہو رہا ہے…',
     offline: 'پرنٹر ابھی بند ہے', closed: 'یہ دکان ابھی آرڈر نہیں لے رہی۔', ur: 'اردو', en: 'English',
-    sheets: '{p} صفحات × {c} کاپیاں', needPay: 'ادائیگی کا طریقہ چنیں',
+    sheets: '{p} صفحات × {c} کاپیاں', needPay: 'ادائیگی کا طریقہ چنیں', payWith: '{m} سے ادائیگی کریں', howPay: 'آپ کیسے ادائیگی کرنا چاہتے ہیں؟', waitPrice: 'قیمت دیکھنے کے لیے اوپر سیٹنگ چنیں',
   },
 };
 const i18n = makeI18n(T);
@@ -32,7 +32,7 @@ const slug = decodeURIComponent(location.pathname.split('/')[2] || '');
 const app = $('#app');
 
 const S = { shop: null, orderId: null, file: null, opts: { colorMode: null, copies: 1, sides: 'single', paperSize: 'A4', pageFrom: '', pageTo: '' },
-  quote: null, quoteErr: null, busy: false, uploading: false, payMethod: null };
+  quote: null, quoteErr: null, busy: false, uploading: false };
 let quoteTimer;
 
 async function ensureOrder() {
@@ -67,11 +67,10 @@ function requote() {
   }, 350);
 }
 
-async function pay() {
-  if (!S.payMethod) return toast(t('needPay'), true);
+async function pay(method) {
   S.busy = true; render();
   try {
-    const r = await api(`/api/public/orders/${S.orderId}/pay`, { method: 'POST', json: { method: S.payMethod } });
+    const r = await api(`/api/public/orders/${S.orderId}/pay`, { method: 'POST', json: { method } });
     if (r.kind === 'cash') location.href = `/o/${S.orderId}`;
     else if (r.kind === 'redirect') location.href = r.url;
     else if (r.kind === 'form') {
@@ -130,11 +129,15 @@ function render() {
         h('div', {}, h('label', {}, t('from')), h('input', { type: 'number', min: 1, max: S.file.pages, inputmode: 'numeric', value: S.opts.pageFrom, onchange: (e) => { S.opts.pageFrom = e.target.value; requote(); } })),
         h('div', {}, h('label', {}, t('to')), h('input', { type: 'number', min: 1, max: S.file.pages, inputmode: 'numeric', value: S.opts.pageTo, onchange: (e) => { S.opts.pageTo = e.target.value; requote(); } })))));
 
+  const payLabel = { cash: t('payCash'), jazzcash: t('payWith', { m: t('payJazz') }), easypaisa: t('payWith', { m: t('payEasy') }), mock: t('payMock') };
   const sec3 = S.file && h('section', { class: 'card stack' },
     h('h2', {}, t('step3')),
     S.quoteErr && h('div', { class: 'notice bad', role: 'alert' }, S.quoteErr),
-    h('div', { class: 'seg', style: 'flex-wrap:wrap' }, s.paymentMethods.map((m) =>
-      h('button', { type: 'button', 'aria-pressed': pressed(S.payMethod === m), onclick: () => { S.payMethod = m; render(); } }, methodLabel[m] || m))));
+    !S.quote && !S.quoteErr && h('p', { class: 'muted' }, S.calc ? t('calc') : t('waitPrice')),
+    S.quote && h('p', { class: 'muted', style: 'margin:0' }, t('howPay')),
+    ...s.paymentMethods.map((m) =>
+      h('button', { class: m === 'cash' ? 'btn' : 'btn primary', type: 'button', disabled: !canPay,
+        onclick: () => pay(m) }, S.busy ? '…' : payLabel[m] || m)));
 
   const ready = !!S.quote;
   clear(app).append(
@@ -150,7 +153,7 @@ function render() {
         h('div', { class: 'muted small' }, t('total')),
         h('div', { class: 'price', 'aria-live': 'polite' }, S.calc ? '…' : S.quote ? money(S.quote.amount) : '—'),
         S.quote && h('div', { class: 'muted small' }, t('sheets', { p: S.quote.pages, c: S.quote.copies }))),
-      h('button', { class: 'btn primary', type: 'button', disabled: !canPay || !S.payMethod, onclick: pay }, t('pay'))))
+      null))
   );
 }
 

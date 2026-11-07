@@ -33,7 +33,7 @@ async function api(method, url, { token, json } = {}) {
 }
 
 let n = 0;
-async function loadPage(htmlFile, urlPath, script, { storage = {} } = {}) {
+async function loadPage(htmlFile, urlPath, script, { storage = {}, fetchImpl } = {}) {
   const html = fs.readFileSync(path.join(pub, htmlFile), 'utf8');
   const dom = new JSDOM(html, { url: base + urlPath, pretendToBeVisual: true });
   const w = dom.window;
@@ -43,7 +43,7 @@ async function loadPage(htmlFile, urlPath, script, { storage = {} } = {}) {
   define('window', w);
   for (const k of ['document', 'location', 'localStorage', 'navigator', 'FormData', 'Blob', 'File', 'HTMLElement']) define(k, w[k]);
   define('confirm', () => true);
-  define('fetch', (u, o) => nodeFetch(new URL(u, base), o));
+  define('fetch', fetchImpl || ((u, o) => nodeFetch(new URL(u, base), o)));
   w.addEventListener('error', (e) => errors.push(e.error || e.message));
   await import(pathToFileURL(path.join(pub, 'assets', script)).href + `?run=${++n}`);
   await sleep(700);
@@ -57,7 +57,11 @@ before(async () => {
   await new Promise((r) => server.listen(0, r));
   base = `http://localhost:${server.address().port}`;
 });
-after(async () => { await new Promise((r) => server.close(r)); await pool.end(); process.exit(0); });
+after(async () => {
+  await new Promise((r) => server.close(r));
+  await pool.end();
+  setTimeout(() => process.exit(0), 300); // jsdom timers can keep the process alive; let the reporter flush first
+});
 
 test('static pages are served and carry security headers', async () => {
   for (const p of ['/', '/login', '/dashboard', '/admin']) {
@@ -132,4 +136,37 @@ test('QR image endpoint returns a PNG', async () => {
   assert.equal(r.headers.get('content-type'), 'image/png');
   const buf = Buffer.from(await r.arrayBuffer());
   assert.equal(buf.subarray(1, 4).toString(), 'PNG');
+});
+
+test('customer clicks "Pay at the counter" and the payment actually starts', async () => {
+  // The shop has a printer online in this scenario, so the server's replies are stubbed.
+  const calls = [];
+  const json = (data) => Promise.resolve(new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+  const ORDER = '11111111-1111-4111-8111-111111111111';
+  const fetchImpl = (u, o = {}) => {
+    const url = String(u);
+    calls.push({ method: o.method || 'GET', url, body: o.body && typeof o.body === 'string' ? JSON.parse(o.body) : null });
+    if (/\/api\/public\/shops\/ui-prints$/.test(url)) return json({ name: 'UI Prints', city: 'Karachi', closedReason: null, printersOnline: 1, colorAvailable: true, duplexAvailable: true, paperSizes: ['A4'], paymentMethods: ['cash', 'mock'], maxFileMb: 25,
+      pricing: [{ color_mode: 'bw', paper_size: 'A4', sides: 'single', price_per_page: 15 }, { color_mode: 'color', paper_size: 'A4', sides: 'single', price_per_page: 50 }] });
+    if (/\/shops\/ui-prints\/orders$/.test(url)) return json({ orderId: ORDER, code: '123456' });
+    if (/\/file$/.test(url)) return json({ fileName: 'notes.pdf', pages: 3 });
+    if (/\/options$/.test(url)) return json({ amount: 45, pages: 3, copies: 1 });
+    if (/\/pay$/.test(url)) return json({ kind: 'cash', orderId: ORDER });
+    return json({});
+  };
+  const page = await loadPage('customer.html', '/s/ui-prints', 'customer.js', { fetchImpl });
+  const input = page.doc.querySelector('input[type=file]');
+  Object.defineProperty(input, 'files', { value: [new page.w.File(['%PDF-1.4'], 'notes.pdf', { type: 'application/pdf' })] });
+  input.dispatchEvent(new page.w.Event('change'));
+  await sleep(900); // upload, then the 350 ms price debounce
+
+  assert.match(page.doc.body.textContent, /Rs 45/, 'price is shown');
+  const cash = [...page.doc.querySelectorAll('button')].find((b) => b.textContent === 'Pay at the counter');
+  assert.ok(cash, 'cash button exists');
+  assert.equal(cash.disabled, false, 'cash button is enabled once the price is ready');
+  cash.click();
+  await sleep(300);
+  const pay = calls.find((c) => c.method === 'POST' && /\/pay$/.test(c.url));
+  assert.ok(pay, 'clicking the button sends the payment request straight away');
+  assert.deepEqual(pay.body, { method: 'cash' });
 });
