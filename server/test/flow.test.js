@@ -156,6 +156,9 @@ test('customer flow with mock payment: upload -> options -> pay -> printed -> fi
   const shop = await api('GET', '/api/public/shops/alpha');
   assert.equal(shop.data.printersOnline, 2);
   assert.equal(shop.data.colorAvailable, true);
+  assert.deepEqual(shop.data.paperSizes, ['A4'], 'customer page gets a real list of paper sizes');
+  const plist = await api('GET', '/api/shop/printers', { token: state.alpha });
+  assert.ok(plist.data.every((p) => Array.isArray(p.paper_sizes) && p.paper_sizes.includes('A4')), 'printers list has paper_sizes as arrays');
 
   const orderId = await newOrder('alpha');
   const up = await uploadPdf(orderId, 3);

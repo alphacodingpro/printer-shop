@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pool, q } from './db.js';
+import { pool, q, registerEnumArrayParsers } from './db.js';
 import { config } from './config.js';
 import { hashPassword } from './auth.js';
 
@@ -34,6 +34,7 @@ export async function migrate() {
       console.log(`Super admin created: ${config.adminEmail}`);
     }
   }
+  await registerEnumArrayParsers();
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

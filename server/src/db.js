@@ -27,3 +27,14 @@ export async function tx(fn) {
     client.release();
   }
 }
+
+/**
+ * node-postgres only knows built-in array types. Arrays of our own enums (e.g. paper_size[])
+ * would arrive as the raw string "{A4,A3}", so we register a parser once the types exist.
+ */
+export async function registerEnumArrayParsers() {
+  const r = await pool.query(`SELECT typarray FROM pg_type WHERE typname = 'paper_size' AND typarray <> 0`);
+  for (const row of r.rows) {
+    pg.types.setTypeParser(row.typarray, (v) => (v === '{}' ? [] : v.slice(1, -1).split(',')));
+  }
+}
