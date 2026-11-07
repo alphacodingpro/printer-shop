@@ -1,0 +1,37 @@
+# Render Blueprint: New > Blueprint > pick this repo.
+# After the first deploy, open the service's Environment tab and set the values marked sync:false.
+databases:
+  - name: printsaas-db
+    plan: basic-256mb
+    databaseName: printsaas
+    user: printsaas
+
+services:
+  - type: web
+    name: printsaas
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    plan: starter            # a persistent disk needs a paid instance
+    healthCheckPath: /healthz
+    disk:
+      name: print-files
+      mountPath: /data
+      sizeGB: 5
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase: { name: printsaas-db, property: connectionString }
+      - key: DATABASE_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY      # must be exactly 64 hex characters; see README
+        sync: false
+      - key: PUBLIC_URL          # e.g. https://printsaas.onrender.com (or your own domain)
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
