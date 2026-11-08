@@ -1,0 +1,48 @@
+:root {
+  --bg: #f4f6f9; --card: #fff; --ink: #14181f; --muted: #5b6573; --line: #dde2ea;
+  --cyan: #0a78a6; --green: #1fa84f; --amber: #f2b705; --red: #d93025; --grey: #8a94a3;
+  --ok-soft: #e1f5e8; --warn-soft: #fff3d6; --bad-soft: #fde8e6; --info-soft: #e2f3fa;
+  --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0f1217; --card: #181c23; --ink: #eceff4; --muted: #9aa5b5; --line: #2a303a; --cyan: #4cc3ee;
+    --ok-soft: #12301e; --warn-soft: #34290c; --bad-soft: #3a1714; --info-soft: #12303d; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font); }
+html[lang="ur"] body { font-family: "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", "Segoe UI", Tahoma, sans-serif; line-height: 1.9; }
+#app { padding: 16px; display: grid; gap: 12px; }
+h1 { font-size: 20px; margin: 0; }
+h2 { font-size: 14px; margin: 0 0 8px; }
+p { margin: 0 0 8px; }
+.muted { color: var(--muted); } .small { font-size: 12px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; } .between { justify-content: space-between; }
+.status { display: flex; gap: 14px; align-items: center; }
+.bigdot { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--grey); box-shadow: 0 0 0 6px color-mix(in srgb, var(--grey) 25%, transparent); }
+.status.connected .bigdot { background: var(--green); box-shadow: 0 0 0 6px color-mix(in srgb, var(--green) 25%, transparent); }
+.status.connecting .bigdot { background: var(--amber); box-shadow: 0 0 0 6px color-mix(in srgb, var(--amber) 30%, transparent); }
+.status.disconnected .bigdot { background: var(--red); box-shadow: 0 0 0 6px color-mix(in srgb, var(--red) 25%, transparent); }
+@media (prefers-reduced-motion: no-preference) { .status.connecting .bigdot { animation: pulse 1.2s ease-in-out infinite; } }
+@keyframes pulse { 50% { opacity: .45; } }
+.btn { appearance: none; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-weight: 600; padding: 9px 14px; border-radius: 8px; cursor: pointer; min-height: 38px; }
+.btn.primary { background: var(--cyan); border-color: var(--cyan); color: #fff; width: 100%; min-height: 44px; font-size: 15px; }
+@media (prefers-color-scheme: dark) { .btn.primary { color: #04202b; } }
+.btn.link { border: 0; background: none; color: var(--cyan); padding: 4px 0; min-height: 0; font-weight: 500; }
+.btn.danger { color: var(--red); }
+.btn[disabled] { opacity: .55; cursor: not-allowed; }
+:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+label { display: block; font-weight: 600; margin-bottom: 4px; }
+input[type=text] { width: 100%; font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-height: 42px; }
+input.code { font-size: 22px; font-weight: 700; letter-spacing: .14em; text-align: center; text-transform: uppercase; direction: ltr; }
+input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--cyan); }
+.check { display: flex; gap: 8px; align-items: center; font-weight: 500; margin: 6px 0; }
+.notice { padding: 9px 12px; border-radius: 8px; background: var(--warn-soft); }
+.notice.bad { background: var(--bad-soft); } .notice.ok { background: var(--ok-soft); } .notice.info { background: var(--info-soft); }
+ol.steps { margin: 0 0 10px; padding-inline-start: 20px; } ol.steps li { margin: 3px 0; }
+.item { padding: 8px 0; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: space-between; align-items: center; }
+.item:first-of-type { border-top: 0; }
+.chip { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--line); margin-inline-start: 4px; }
+.chip.ok { background: var(--ok-soft); color: var(--green); } .chip.bad { background: var(--bad-soft); color: var(--red); } .chip.info { background: var(--info-soft); color: var(--cyan); }
+.lang { appearance: none; background: none; border: 1px solid var(--line); color: var(--ink); border-radius: 999px; padding: 2px 10px; font: inherit; font-size: 12px; cursor: pointer; }

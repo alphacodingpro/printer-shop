@@ -29,7 +29,7 @@ router.get('/me', wrap(async (req, res) => {
       [req.user.shopId]
     )
   ).rows[0];
-  res.json({ role: req.user.role, shop: s, shopUrl: `${config.publicUrl}/s/${s.slug}`, qrUrl: `/qr/${s.slug}.png` });
+  res.json({ role: req.user.role, shop: s, shopUrl: `${config.publicUrl}/s/${s.slug}`, qrUrl: `/qr/${s.slug}.png`, agentDownloadUrl: config.agentDownloadUrl });
 }));
 
 router.patch('/me', requireOwner, wrap(async (req, res) => {

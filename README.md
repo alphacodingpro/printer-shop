@@ -18,6 +18,7 @@ A multi-shop SaaS for print shops. A customer scans the shop's **QR code**, uplo
 
 * **Nothing prints before payment is verified on the server.** The browser's "success" page is never trusted.
 * The agent only makes *outgoing* connections, so shops need no router or firewall changes.
+* The shop computer runs the **PrintSaaS Agent tray app**: a taskbar icon that shows connected / not connected, starts with Windows, reconnects by itself, and adds all of the computer's printers to the shop with one click.
 * Multi-tenant: one database, every table carries `shop_id`; each shop sees only its own data.
 
 ## What is included
@@ -26,6 +27,7 @@ A multi-shop SaaS for print shops. A customer scans the shop's **QR code**, uplo
 |---|---|
 | Customer page (`/s/<shop>`) | Mobile-first, English/Urdu (RTL), file upload (PDF, JPG/PNG, Word, PowerPoint, Excel), live price, page ranges |
 | Printing | Multiple printers per shop, colour/B&W routing, duplex, paper size, load balancing, retries, reprint |
+| Shop computer app | Tray/menu-bar app (Windows, macOS): status icon, one-click pairing and printer fetch, auto-start, auto-reconnect, English/Urdu, test mode |
 | Payments | Per-shop JazzCash and Easypaisa credentials (AES-256-GCM encrypted), cash at counter with "Cash received" button |
 | Shop dashboard (`/dashboard`) | Live orders, printers & computers, price list, payment setup, QR poster, staff accounts |
 | Admin (`/admin`) | Approve/suspend shops, plans, subscription status and paid-until date |
@@ -50,7 +52,7 @@ npm start                     # creates tables, plans and the admin account on f
 Then:
 
 1. Open `/login`, **create your shop**.
-2. Dashboard → **Printers → Add computer**, pair the agent (see `agent/README.md`). For a first try without a printer: `PRINT_DRY_RUN=1 node agent.js`.
+2. Dashboard → **Printers → Add computer**, then type the code into the **PrintSaaS Agent** app on the shop computer (see `agent/README.md` for installing it). For a first try without a printer, tick **Test mode** in the app.
 3. Add your printers, check **Prices**, and open **Shop & QR** to print the poster.
 4. Scan the QR (or open the shop link), upload a file, and pick **Test payment** (available outside production) or **Pay at the counter**.
 
@@ -69,6 +71,7 @@ Admin panel: `/admin` (email and password from `ADMIN_EMAIL` / `ADMIN_PASSWORD`;
 | `TRIAL_DAYS` | Free trial length for new shops (default 14) |
 | `MAX_FILE_MB`, `MAX_PAGES` | Upload limits (default 25 MB, 300 pages) |
 | `STORAGE_DIR` | Where uploaded files wait for printing. Must be persistent in production |
+| `AGENT_DOWNLOAD_URL` | Optional. Link to the agent installer (e.g. your GitHub Releases page). The dashboard then shows a "Download PrintSaaS Agent" button |
 | `SOFFICE_PATH` | LibreOffice binary for Word/PowerPoint/Excel conversion. Without it only PDF and photos are accepted |
 | `ENABLE_MOCK_PAYMENTS` | Fake payment page for testing. **Always disabled when `NODE_ENV=production`** |
 
@@ -110,11 +113,11 @@ export TEST_DATABASE_URL=postgres://user:pass@localhost:5432/printsaas_test   # 
 npm test
 ```
 
-16 tests: signup/login, plan limits, real agent process pairing and printing (dry run), colour routing, cash flow, JazzCash signature checks (forged, tampered, wrong amount), amount-change fraud, tenant isolation, upload validation, file deletion, and a render check of every web page.
+34 tests: signup/login, plan limits, real agent process pairing and printing (dry run), colour routing, cash flow, JazzCash signature checks (forged, tampered, wrong amount), amount-change fraud, tenant isolation, upload validation, file deletion, a render and click-through check of every web page, the agent core (pairing, status, automatic reconnect, one-click printer sync, removal from the dashboard), and the tray window.
 
 ## Known limits (v1)
 
-* **Not tested on real printers or on Windows.** Printing is verified end-to-end in dry-run mode; the Windows path uses `pdf-to-printer` (SumatraPDF). Test with your printers and adjust `agent/agent.js` if a driver needs special options.
+* **Not tested on real printers or on a real Windows PC.** Printing is verified end-to-end in test mode, and the tray app was run for real on a virtual screen; the Windows path uses `pdf-to-printer` (SumatraPDF) and PowerShell printer detection. Test with your printers and adjust `agent/src/core.js` if a driver needs special options. The Windows installer is built by the GitHub workflow and is not code-signed.
 * Subscription billing is manual: you set a shop's plan and paid-until date in `/admin`. There is no automatic charging.
 * No email verification or password reset yet. Shop owners must tell you to reset a password.
 * One server instance: the agent hub is in memory. Running several instances needs a shared pub/sub layer (e.g. Redis).
@@ -126,6 +129,7 @@ npm test
 
 ```
 server/   Express API, PostgreSQL schema (db/schema.sql), web pages (public/), tests (test/)
-agent/    Print Agent for the shop computer
+agent/    PrintSaaS Agent for the shop computer: tray app (app/), shared engine (src/), command line (agent.js)
+.github/workflows/build-agent.yml   builds the Windows installer (and macOS .dmg) on GitHub
 render.yaml, docker-compose.yml
 ```

@@ -96,7 +96,8 @@ async function printersView(c) {
   const nameIn = h('input', { type: 'text', placeholder: 'Counter PC', maxlength: 80 });
   const agentCard = h('section', { class: 'card stack' },
     h('h2', {}, 'Computers'),
-    h('p', { class: 'muted small' }, 'The Print Agent runs on the computer that is connected to your printers. Add the computer here, then pair it with the code.'),
+    h('p', { class: 'muted small' }, 'Install the PrintSaaS Agent on the computer that is connected to your printers. It sits in the taskbar, shows whether you are connected, and starts with the computer. Add the computer here, then type the code into the app.'),
+    S.me.agentDownloadUrl && h('div', {}, h('a', { class: 'btn', href: S.me.agentDownloadUrl, target: '_blank', rel: 'noopener' }, 'Download PrintSaaS Agent')),
     ...agents.map((a) => h('div', { class: 'card' },
       h('div', { class: 'row between' },
         h('div', {}, h('span', { class: `dot ${a.online ? 'on' : ''}`, 'aria-hidden': 'true' }), ' ', h('strong', {}, a.name), ' ',
@@ -105,9 +106,10 @@ async function printersView(c) {
           h('button', { class: 'btn small', onclick: async () => (await act(() => call(`/agents/${a.id}/pairing`, { method: 'POST' }))) && reload() }, a.paired ? 'Re-pair' : 'New code'),
           h('button', { class: 'btn small danger', onclick: async () => confirm(`Remove ${a.name}?`) && (await act(() => call(`/agents/${a.id}`, { method: 'DELETE' }))) && reload() }, 'Remove'))),
       a.pairing_code && h('div', { class: 'stack', style: 'margin-top:10px' },
-        h('div', { class: 'small muted' }, 'On the shop computer, open a terminal in the agent folder and run (code works for 15 minutes):'),
+        h('div', { class: 'small muted' }, 'Open PrintSaaS Agent on the shop computer and type this code (works for 15 minutes):'),
         h('div', { class: 'pair' }, a.pairing_code),
-        h('div', { class: 'code-block' }, `node agent.js pair ${a.pairing_code} --server ${location.origin}\nnode agent.js`)))),
+        h('details', {}, h('summary', { class: 'small muted' }, 'Command line instead'),
+          h('div', { class: 'code-block' }, `node agent.js pair ${a.pairing_code} --server ${location.origin}\nnode agent.js`))))),
     owner && h('div', { class: 'row' }, h('div', { class: 'grow' }, nameIn),
       h('button', { class: 'btn primary', onclick: async () => (await act(() => call('/agents', { method: 'POST', json: { name: nameIn.value } }))) && reload() }, 'Add computer')));
 

@@ -106,6 +106,7 @@ test('shop signup and login', async () => {
   const me = await api('GET', '/api/shop/me', { token: state.alpha });
   assert.equal(me.data.shop.slug, 'alpha');
   assert.equal(me.data.shop.plan_name, 'Basic');
+  assert.equal(me.data.agentDownloadUrl, null, 'no installer link unless AGENT_DOWNLOAD_URL is set');
 });
 
 test('pair a real agent process and register printers', async () => {

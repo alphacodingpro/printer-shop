@@ -91,7 +91,12 @@ async function handleMessage(agent, msg) {
   switch (msg?.type) {
     case 'printers': {
       const list = (Array.isArray(msg.printers) ? msg.printers : [])
-        .map((p) => ({ name: String(p?.name ?? p).slice(0, 200) }))
+        .map((p) => ({
+          name: String(p?.name ?? p).slice(0, 200),
+          color: p?.color === true,
+          duplex: p?.duplex === true,
+          paperSizes: (Array.isArray(p?.paperSizes) ? p.paperSizes : []).filter((z) => ['A4', 'A3', 'A5', 'Legal', 'Letter'].includes(z)),
+        }))
         .filter((p) => p.name)
         .slice(0, 50);
       await q('UPDATE agents SET detected_printers = $2, last_seen_at = now() WHERE id = $1', [agent.id, JSON.stringify(list)]);

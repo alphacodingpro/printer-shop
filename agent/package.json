@@ -1,18 +1,76 @@
 {
   "name": "printsaas-agent",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
-  "description": "Runs on the print shop's computer and sends paid jobs to the local printers",
-  "engines": { "node": ">=18" },
+  "description": "PrintSaaS Print Agent: tray app (Windows/macOS) and command-line agent for the shop computer",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node agent.js",
-    "printers": "node agent.js printers"
+    "printers": "node agent.js printers",
+    "gui": "electron .",
+    "gui:test": "PRINT_DRY_RUN=1 electron .",
+    "icons": "node scripts/make-icons.mjs",
+    "dist:win": "electron-builder --win --x64 --publish never",
+    "dist:mac": "electron-builder --mac"
   },
   "dependencies": {
     "ws": "^8.18.0"
   },
   "optionalDependencies": {
     "pdf-to-printer": "^5.6.0"
+  },
+  "devDependencies": {
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0"
+  },
+  "main": "app/main.js",
+  "author": "PrintSaaS",
+  "printsaas": {
+    "defaultServer": "https://printsaas.onrender.com"
+  },
+  "build": {
+    "appId": "com.printsaas.agent",
+    "productName": "PrintSaaS Agent",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "app/**/*",
+      "src/**/*",
+      "package.json",
+      "!**/*.md"
+    ],
+    "asarUnpack": [
+      "node_modules/pdf-to-printer/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "app/assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "shortcutName": "PrintSaaS Agent",
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "PrintSaaS-Agent-Setup.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "app/assets/icon.png",
+      "category": "public.app-category.business"
+    }
   }
 }

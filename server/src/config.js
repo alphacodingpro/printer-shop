@@ -18,6 +18,7 @@ export const config = {
   trialDays: Number(env.TRIAL_DAYS || 14),
   enableMockPayments: (env.ENABLE_MOCK_PAYMENTS ?? (isProd ? 'false' : 'true')) === 'true' && !isProd,
   sofficePath: env.SOFFICE_PATH || 'soffice',
+  agentDownloadUrl: env.AGENT_DOWNLOAD_URL || null,
   adminEmail: env.ADMIN_EMAIL,
   adminPassword: env.ADMIN_PASSWORD,
 };
