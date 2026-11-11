@@ -42,8 +42,8 @@ export const requireOwner = (req, _res, next) =>
 
 export const requireAdmin = wrap(async (req, _res, next) => {
   const p = readToken(req, 'admin');
-  const r = await q('SELECT id FROM platform_admins WHERE id = $1', [p.sub]);
+  const r = await q('SELECT id, email FROM platform_admins WHERE id = $1', [p.sub]);
   if (!r.rows.length) throw new HttpError(401, 'Account not found');
-  req.admin = { id: p.sub };
+  req.admin = { id: r.rows[0].id, email: r.rows[0].email };
   next();
 });

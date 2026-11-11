@@ -16,7 +16,17 @@ export function h(tag, props, ...children) {
   return el;
 }
 export const $ = (sel, root = document) => root.querySelector(sel);
-export const clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); return el; };
+// The browser's native el.append(null) writes the text "null" (same for false/undefined). Pages build their
+// layout with conditionals like `cond && node`, so clear() hands back an element whose append() skips those.
+function skipEmpty(el) {
+  if (!el.__skipEmpty) {
+    const native = el.append.bind(el);
+    el.append = (...kids) => native(...kids.flat(Infinity).filter((k) => k != null && k !== false));
+    el.__skipEmpty = true;
+  }
+  return el;
+}
+export const clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); return skipEmpty(el); };
 
 export const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },

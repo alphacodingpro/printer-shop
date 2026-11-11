@@ -20,17 +20,44 @@ const SIZES = ['A4', 'A3', 'A5', 'Legal', 'Letter'];
 const field = (label, input, hint) => h('div', { class: 'field' }, h('label', {}, label), input, hint && h('div', { class: 'small muted' }, hint));
 const isOwner = () => S.me.role === 'owner';
 
+// Free trial / subscription reminder for the shop owner. Billing is manual, so tell them how to reach the admin.
+function subscriptionBanner() {
+  const { shop, support } = S.me;
+  if (!shop.current_period_end || shop.status === 'pending') return null;
+  const ends = new Date(shop.current_period_end);
+  const days = Math.ceil((ends - Date.now()) / 86400000);
+  const contact = support ? ` To continue, contact: ${support}` : ' Please contact the platform owner.';
+  const trial = shop.sub_status === 'trialing';
+  if (['past_due', 'cancelled'].includes(shop.sub_status)) return h('div', { class: 'notice bad', role: 'alert' }, `Your subscription is not active, so customers cannot place orders.${contact}`);
+  if (ends < new Date()) return h('div', { class: 'notice bad', role: 'alert' }, `Your ${trial ? 'free trial' : 'subscription'} has ended, so customers cannot place orders.${contact}`);
+  if (trial && days <= 7) return h('div', { class: 'notice', role: 'status' }, `Your free trial ends in ${days} day${days === 1 ? '' : 's'}.${contact}`);
+  if (!trial && days <= 5) return h('div', { class: 'notice', role: 'status' }, `Your subscription ends in ${days} day${days === 1 ? '' : 's'}.${contact}`);
+  return null;
+}
+
+function statusChips(shop) {
+  const ended = (shop.current_period_end && new Date(shop.current_period_end) < new Date()) || ['past_due', 'cancelled'].includes(shop.sub_status);
+  const trial = shop.sub_status === 'trialing';
+  return [
+    shop.status !== 'active' ? h('span', { class: 'chip warn' }, shop.status)
+      : ended ? h('span', { class: 'chip bad' }, 'Closed to customers')
+      : h('span', { class: 'chip ok' }, 'Open'),
+    ' ',
+    ended ? h('span', { class: 'chip bad' }, trial ? 'Trial ended' : 'Subscription ended')
+      : h('span', { class: 'chip info' }, `${shop.plan_name ?? 'No plan'}${trial ? ' trial' : ''}`),
+  ];
+}
+
 function shell() {
   const { shop } = S.me;
   clear(app).append(
     h('header', { class: 'top' },
       h('div', { class: 'in' },
-        h('div', {}, h('strong', {}, shop.name), ' ',
-          h('span', { class: `chip ${shop.status === 'active' ? 'ok' : 'warn'}` }, shop.status === 'active' ? 'Open' : shop.status),
-          ' ', h('span', { class: 'chip info' }, `${shop.plan_name ?? 'No plan'}${shop.sub_status === 'trialing' ? ' trial' : ''}`)),
+        h('div', {}, h('strong', {}, shop.name), ' ', statusChips(shop)),
         h('button', { class: 'btn small', onclick: () => { store.del('shopToken'); location.href = '/login'; } }, 'Sign out')),
       h('nav', { class: 'tabs', role: 'tablist' }, TABS.map(([k, label]) =>
         h('button', { role: 'tab', 'aria-selected': S.tab === k ? 'true' : 'false', onclick: () => { S.tab = k; show(); } }, label)))),
+    (() => { const b = subscriptionBanner(); return b ? h('div', { class: 'wrap wide', id: 'banner', style: 'padding-bottom:0' }, b) : null; })(),
     h('main', { class: 'wrap wide', id: 'content' }));
 }
 

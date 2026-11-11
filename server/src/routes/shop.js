@@ -8,6 +8,7 @@ import { encrypt, pairingCode } from '../crypto.js';
 import { isAgentOnline, dispatchJob } from '../hub.js';
 import { markPaid } from '../payments.js';
 import { requiredFields } from '../providers/index.js';
+import { getSettings } from '../settings.js';
 
 const router = Router();
 router.use(requireShop);
@@ -29,7 +30,7 @@ router.get('/me', wrap(async (req, res) => {
       [req.user.shopId]
     )
   ).rows[0];
-  res.json({ role: req.user.role, shop: s, shopUrl: `${config.publicUrl}/s/${s.slug}`, qrUrl: `/qr/${s.slug}.png`, agentDownloadUrl: config.agentDownloadUrl });
+  res.json({ role: req.user.role, shop: s, shopUrl: `${config.publicUrl}/s/${s.slug}`, qrUrl: `/qr/${s.slug}.png`, agentDownloadUrl: config.agentDownloadUrl, support: (await getSettings()).contactInfo });
 }));
 
 router.patch('/me', requireOwner, wrap(async (req, res) => {

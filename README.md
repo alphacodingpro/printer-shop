@@ -30,7 +30,7 @@ A multi-shop SaaS for print shops. A customer scans the shop's **QR code**, uplo
 | Shop computer app | Tray/menu-bar app (Windows, macOS): status icon, one-click pairing and printer fetch, auto-start, auto-reconnect, English/Urdu, test mode |
 | Payments | Per-shop JazzCash and Easypaisa credentials (AES-256-GCM encrypted), cash at counter with "Cash received" button |
 | Shop dashboard (`/dashboard`) | Live orders, printers & computers, price list, payment setup, QR poster, staff accounts |
-| Admin (`/admin`) | Approve/suspend shops, plans, subscription status and paid-until date |
+| Admin panel (`/admin`) | Overview of what needs attention, search and filter shops, per-shop page (extend free trial, mark paid, approve/suspend, private notes, reset owner password, delete), plans, settings (trial length, approval, sign-ups on/off, your contact details), activity log |
 | Privacy | Customer files deleted ~2 minutes after printing, or when an order expires/cancels |
 
 ## Quick start (local)
@@ -58,6 +58,21 @@ Then:
 
 Admin panel: `/admin` (email and password from `ADMIN_EMAIL` / `ADMIN_PASSWORD`; change them after the first login).
 
+## Admin panel (`/admin`)
+
+Sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`. Tabs:
+
+* **Overview**: counts (on trial, paid, expired, waiting for approval, suspended), and three lists with one-click buttons: shops **waiting for approval**, **free trials ending within 7 days**, and **expired** shops (closed to customers).
+* **Shops**: search by name, link, email, phone or city, and filter by status. Click a shop to open it.
+* **A shop's page**: **+7 / +14 / +30 days** for the free trial, **Mark paid +30 days / +1 year**, set plan, status and end date by hand, approve / suspend / reactivate, **reset owner password** (a new random password is shown to you once), a private note, usage (orders, money paid by customers, computers and printers, last order) and **delete** (you must type the shop link).
+* **Plans**: add and edit plans (price, printer limit, orders per month, on/off) and see how many shops use each.
+* **Settings**: free trial length for new shops, the plan new shops get, allow new sign-ups on/off, require your approval for new shops, and your **contact details** (for example a WhatsApp number). Shops see these in their dashboard when their trial is ending or has ended.
+* **Activity**: who changed what and when.
+
+How a free trial works: every new shop starts a trial for the number of days in **Settings**. When the end date passes, the shop's customers can no longer place orders and the owner sees a banner with your contact details. When the shop pays you (cash, bank transfer, JazzCash...), open the shop and press **Mark paid +30 days**. Billing is manual; nothing is charged automatically.
+
+Database upgrades are automatic: on every start the server applies any new files in `server/db/migrations/` once, so an already-deployed database (for example on Render) is upgraded in place without losing data.
+
 ## Configuration (`server/.env`)
 
 | Variable | Notes |
@@ -67,8 +82,7 @@ Admin panel: `/admin` (email and password from `ADMIN_EMAIL` / `ADMIN_PASSWORD`;
 | `ENCRYPTION_KEY` | **Exactly 64 hex characters.** Encrypts shops' payment keys. **Back it up**: if it is lost, saved gateway keys cannot be recovered |
 | `PUBLIC_URL` | Public HTTPS address of your server. Used in QR codes and payment callbacks |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Super admin created on first start |
-| `REQUIRE_SHOP_APPROVAL` | `true` = new shops stay "pending" until you approve them in `/admin` |
-| `TRIAL_DAYS` | Free trial length for new shops (default 14) |
+| `REQUIRE_SHOP_APPROVAL`, `TRIAL_DAYS` | Only the **first-start defaults** (approval off, 14 days). After that, change them in `/admin` → Settings |
 | `MAX_FILE_MB`, `MAX_PAGES` | Upload limits (default 25 MB, 300 pages) |
 | `STORAGE_DIR` | Where uploaded files wait for printing. Must be persistent in production |
 | `AGENT_DOWNLOAD_URL` | Optional. Link to the agent installer (e.g. your GitHub Releases page). The dashboard then shows a "Download PrintSaaS Agent" button |
@@ -113,12 +127,12 @@ export TEST_DATABASE_URL=postgres://user:pass@localhost:5432/printsaas_test   # 
 npm test
 ```
 
-34 tests: signup/login, plan limits, real agent process pairing and printing (dry run), colour routing, cash flow, JazzCash signature checks (forged, tampered, wrong amount), amount-change fraud, tenant isolation, upload validation, file deletion, a render and click-through check of every web page, the agent core (pairing, status, automatic reconnect, one-click printer sync, removal from the dashboard), and the tray window.
+51 tests: signup/login, plan limits, real agent process pairing and printing (dry run), colour routing, cash flow, JazzCash signature checks (forged, tampered, wrong amount), amount-change fraud, tenant isolation, upload validation, file deletion, a render and click-through check of every web page, the agent core (pairing, status, automatic reconnect, one-click printer sync, removal from the dashboard), the tray window, and the admin panel (API and screens, including upgrading an older database).
 
 ## Known limits (v1)
 
 * **Not tested on real printers or on a real Windows PC.** Printing is verified end-to-end in test mode, and the tray app was run for real on a virtual screen; the Windows path uses `pdf-to-printer` (SumatraPDF) and PowerShell printer detection. Test with your printers and adjust `agent/src/core.js` if a driver needs special options. The Windows installer is built by the GitHub workflow and is not code-signed.
-* Subscription billing is manual: you set a shop's plan and paid-until date in `/admin`. There is no automatic charging.
+* Subscription billing is manual: you extend a trial or mark a shop paid in `/admin`. There is no automatic charging, reminder email or SMS to shops yet (they see a banner in their dashboard).
 * No email verification or password reset yet. Shop owners must tell you to reset a password.
 * One server instance: the agent hub is in memory. Running several instances needs a shared pub/sub layer (e.g. Redis).
 * Uploaded files live on local disk (`STORAGE_DIR`).

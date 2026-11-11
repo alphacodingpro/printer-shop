@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { q, tx } from '../db.js';
 import { HttpError, wrap } from '../errors.js';
 import { hashPassword, checkPassword, signShopToken, signAdminToken } from '../auth.js';
-import { config } from '../config.js';
+import { getSettings } from '../settings.js';
 
 const router = Router();
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 40, standardHeaders: true, legacyHeaders: false });
@@ -21,6 +21,8 @@ const DEFAULT_PRICES = [
 ];
 
 router.post('/signup', wrap(async (req, res) => {
+  const settings = await getSettings();
+  if (!settings.signupsEnabled) throw new HttpError(403, 'New shop sign-ups are closed right now');
   const { shopName, slug, email, password, phone, city } = req.body ?? {};
   const cleanSlug = String(slug ?? '').trim().toLowerCase();
   const cleanEmail = String(email ?? '').trim().toLowerCase();
@@ -35,7 +37,7 @@ router.post('/signup', wrap(async (req, res) => {
       const shop = (
         await c.query(
           `INSERT INTO shops (name, slug, phone, city, status) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, slug, status`,
-          [String(shopName).trim().slice(0, 120), cleanSlug, phone ? String(phone).slice(0, 30) : null, city ? String(city).slice(0, 80) : null, config.requireApproval ? 'pending' : 'active']
+          [String(shopName).trim().slice(0, 120), cleanSlug, phone ? String(phone).slice(0, 30) : null, city ? String(city).slice(0, 80) : null, settings.requireApproval ? 'pending' : 'active']
         )
       ).rows[0];
       const user = (
@@ -44,11 +46,12 @@ router.post('/signup', wrap(async (req, res) => {
           [shop.id, cleanEmail, await hashPassword(String(password))]
         )
       ).rows[0];
-      const plan = (await c.query(`SELECT id FROM plans WHERE is_active ORDER BY price_monthly LIMIT 1`)).rows[0];
+      const plan = (await c.query(
+        `SELECT id FROM plans WHERE is_active ORDER BY (id = $1::uuid) DESC, price_monthly LIMIT 1`, [settings.defaultPlanId])).rows[0];
       await c.query(
         `INSERT INTO subscriptions (shop_id, plan_id, status, current_period_end)
          VALUES ($1, $2, 'trialing', now() + make_interval(days => $3))`,
-        [shop.id, plan.id, config.trialDays]
+        [shop.id, plan.id, settings.defaultTrialDays]
       );
       for (const [color, sides, price] of DEFAULT_PRICES) {
         await c.query(`INSERT INTO pricing_rules (shop_id, color_mode, paper_size, sides, price_per_page) VALUES ($1, $2, 'A4', $3, $4)`, [shop.id, color, sides, price]);

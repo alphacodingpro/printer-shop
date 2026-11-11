@@ -162,3 +162,14 @@ td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .poster img { width: 420px; height: 420px; }
 .poster h1 { font-size: 2.4rem; }
 @media (prefers-reduced-motion: no-preference) { .btn, .mode, .drop { transition: border-color .15s, background-color .15s; } }
+
+/* admin panel */
+tr.click { cursor: pointer; } tr.click:hover td { background: var(--cyan-soft); }
+.badge { display: inline-block; min-width: 20px; padding: 0 6px; margin-inline-start: 6px; border-radius: 999px; background: var(--magenta); color: #fff; font-size: .75rem; font-weight: 700; text-align: center; }
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.toolbar input[type=text] { max-width: 280px; } .toolbar select { max-width: 220px; }
+.lines > div { display: flex; gap: 10px; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.lines > div:first-child { border-top: 0; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; } .kv dt { color: var(--muted); } .kv dd { margin: 0; }
+.secret { font-family: ui-monospace, Consolas, monospace; font-size: 1.3rem; font-weight: 700; letter-spacing: .08em; direction: ltr; user-select: all; }
+.danger-zone { border-color: var(--bad); }

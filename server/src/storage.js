@@ -21,3 +21,7 @@ export async function removeFile(filePath) {
     if (e.code !== 'ENOENT') throw e;
   }
 }
+
+export async function removeShopFiles(shopId) {
+  await fs.rm(path.join(root, 'orders', shopId), { recursive: true, force: true });
+}

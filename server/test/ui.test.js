@@ -33,6 +33,8 @@ async function api(method, url, { token, json } = {}) {
 }
 
 let n = 0;
+// Layout code uses `cond && node`; a bug there shows up as the literal words null / false / undefined on the page.
+const noStray = (text, where) => assert.doesNotMatch(text, /(null|undefined|false)/, `stray "null/false/undefined" text on ${where}`);
 async function loadPage(htmlFile, urlPath, script, { storage = {}, fetchImpl } = {}) {
   const html = fs.readFileSync(path.join(pub, htmlFile), 'utf8');
   const dom = new JSDOM(html, { url: base + urlPath, pretendToBeVisual: true });
@@ -88,6 +90,7 @@ test('customer page renders shop, offline notice and Urdu toggle', async () => {
   assert.match(page.text, /UI Prints/);
   assert.match(page.text, /Printer offline/);
   assert.match(page.text, /Choose your file/);
+  noStray(page.text, 'customer page');
   page.doc.querySelector('.lang').click();
   assert.equal(page.doc.documentElement.dir, 'rtl');
   assert.match(page.doc.body.textContent, /اپنی فائل چنیں/);
@@ -104,6 +107,7 @@ test('order status page renders a cash order', async () => {
   assert.deepEqual(page.errors, []);
   assert.match(page.text, new RegExp(o.data.code));
   assert.match(page.text, /Pay Rs 45 at the counter/);
+  noStray(page.text, 'order page');
 });
 
 test('shop dashboard renders every tab', async () => {
@@ -123,12 +127,17 @@ test('shop dashboard renders every tab', async () => {
   }
 });
 
-test('admin page logs in and lists shops', async () => {
+test('admin page opens on the overview and lists shops and plans', async () => {
   const login = await api('POST', '/api/auth/admin/login', { json: { email: 'admin@ui.dev', password: 'AdminPass12345' } });
   const page = await loadPage('admin.html', '/admin', 'admin.js', { storage: { adminToken: login.data.token } });
   assert.deepEqual(page.errors, []);
-  assert.match(page.text, /UI Prints/);
-  assert.match(page.text, /Plans/);
+  assert.match(page.text, /On free trial/);
+  noStray(page.text, 'admin overview');
+  const tab = (name) => [...page.doc.querySelectorAll('.tabs button')].find((b) => b.textContent.startsWith(name));
+  tab('Shops').click(); await sleep(300);
+  assert.match(page.doc.body.textContent, /UI Prints/);
+  tab('Plans').click(); await sleep(300);
+  assert.match(page.doc.body.textContent, /Basic/);
 });
 
 test('QR image endpoint returns a PNG', async () => {

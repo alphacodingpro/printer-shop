@@ -49,6 +49,7 @@ test('not set up: shows the connect screen with the default server and asks for 
   assert.match(p.text(), /Enter the code from your dashboard/);
   assert.equal(p.calls.filter((c) => c[0] === 'pair').length, 0, 'does not call the server without a code');
   assert.deepEqual(p.errors, []);
+  assert.doesNotMatch(p.text(), /(null|undefined|false)/, 'no stray null/false/undefined text');
 });
 
 test('pairing: wrong code shows the error, the right code switches to the connected screen', async () => {
